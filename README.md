@@ -43,7 +43,7 @@ flutter build apk --debug
    ```
 3. Run app:
    ```bash
-   flutter run
+   flutter run -d eumlator-5554 --release
    ```
 
 If no emulator is listed, confirm Android SDK path and that `adb` from the same SDK is accessible.

@@ -2,6 +2,8 @@ enum LogEventType {
   food,
   liquid,
   medicine,
+  sleep,
+  bodyState,
   flare,
 }
 

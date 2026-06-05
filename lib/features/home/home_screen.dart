@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../daily/body_state_screen.dart';
+import '../daily/daily_models.dart';
+import '../daily/daily_repository.dart';
+import '../daily/sleep_screen.dart';
 import '../flares/flare_episode.dart';
 import '../flares/flare_repository.dart';
 import '../intake/intake_repository.dart';
@@ -11,11 +15,13 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({
     required this.flareRepository,
     required this.intakeRepository,
+    required this.dailyRepository,
     super.key,
   });
 
   final FlareRepository flareRepository;
   final IntakeRepository intakeRepository;
+  final DailyRepository dailyRepository;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -23,16 +29,19 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late Future<FlareEpisode?> _activeFlare;
+  late Future<DailyStatus> _dailyStatus;
 
   @override
   void initState() {
     super.initState();
     _activeFlare = widget.flareRepository.activeFlare();
+    _dailyStatus = widget.dailyRepository.statusForToday();
   }
 
   void _refresh() {
     setState(() {
       _activeFlare = widget.flareRepository.activeFlare();
+      _dailyStatus = widget.dailyRepository.statusForToday();
     });
   }
 
@@ -140,6 +149,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 20),
+                  FutureBuilder<DailyStatus>(
+                    future: _dailyStatus,
+                    builder: (context, statusSnapshot) {
+                      final status = statusSnapshot.data;
+                      return DailyStatusPanel(status: status);
+                    },
+                  ),
+                  const SizedBox(height: 20),
                   if (activeFlare != null) ...[
                     ActiveFlarePanel(
                       flare: activeFlare,
@@ -163,13 +180,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
-                    onPressed: () => _showComingSoon('Sleep logging'),
+                    onPressed: () async {
+                      await Navigator.of(context)
+                          .pushNamed(SleepScreen.routeName);
+                      _refresh();
+                    },
                     icon: const Icon(Icons.bedtime),
                     label: const Text('Log Sleep'),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
-                    onPressed: () => _showComingSoon('Daily body state'),
+                    onPressed: () async {
+                      await Navigator.of(context)
+                          .pushNamed(BodyStateScreen.routeName);
+                      _refresh();
+                    },
                     icon: const Icon(Icons.fact_check),
                     label: const Text('Daily Body State'),
                   ),
@@ -202,6 +227,66 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
       ),
+    );
+  }
+}
+
+class DailyStatusPanel extends StatelessWidget {
+  const DailyStatusPanel({
+    required this.status,
+    super.key,
+  });
+
+  final DailyStatus? status;
+
+  @override
+  Widget build(BuildContext context) {
+    final sleepLogged = status?.sleepLogged ?? false;
+    final bodyLogged = status?.bodyStateLogged ?? false;
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        StatusChip(
+          label: 'Sleep',
+          logged: sleepLogged,
+          icon: Icons.bedtime,
+        ),
+        StatusChip(
+          label: 'Body state',
+          logged: bodyLogged,
+          icon: Icons.fact_check,
+        ),
+      ],
+    );
+  }
+}
+
+class StatusChip extends StatelessWidget {
+  const StatusChip({
+    required this.label,
+    required this.logged,
+    required this.icon,
+    super.key,
+  });
+
+  final String label;
+  final bool logged;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return InputChip(
+      avatar: Icon(
+        icon,
+        size: 18,
+        color: logged
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+      label: Text('$label ${logged ? 'logged' : 'open'}'),
+      selected: logged,
     );
   }
 }

@@ -82,6 +82,8 @@ class LogEventTile extends StatelessWidget {
       LogEventType.food => Icons.restaurant,
       LogEventType.liquid => Icons.local_drink,
       LogEventType.medicine => Icons.medication,
+      LogEventType.sleep => Icons.bedtime,
+      LogEventType.bodyState => Icons.fact_check,
       LogEventType.flare => Icons.local_fire_department,
     };
   }

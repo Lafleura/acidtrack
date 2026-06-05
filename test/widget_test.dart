@@ -1,4 +1,6 @@
 import 'package:acidtrack/data/local/app_database.dart';
+import 'package:acidtrack/features/daily/daily_models.dart';
+import 'package:acidtrack/features/daily/daily_repository.dart';
 import 'package:acidtrack/features/flares/flare_episode.dart';
 import 'package:acidtrack/features/flares/flare_repository.dart';
 import 'package:acidtrack/features/intake/intake_models.dart';
@@ -12,7 +14,10 @@ void main() {
     final flareRepository = FakeFlareRepository();
 
     await tester.pumpWidget(
-      AcidTrackApp(flareRepository: flareRepository),
+      AcidTrackApp(
+        flareRepository: flareRepository,
+        dailyRepository: FakeDailyRepository(),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -37,6 +42,7 @@ void main() {
       AcidTrackApp(
         flareRepository: FakeFlareRepository(),
         intakeRepository: FakeIntakeRepository(),
+        dailyRepository: FakeDailyRepository(),
       ),
     );
     await tester.pumpAndSettle();
@@ -49,6 +55,35 @@ void main() {
     expect(find.text('Liquid'), findsOneWidget);
     expect(find.text('Medicine'), findsOneWidget);
     expect(find.text('Tomato'), findsOneWidget);
+  });
+
+  testWidgets('opens daily context flows', (tester) async {
+    await tester.pumpWidget(
+      AcidTrackApp(
+        flareRepository: FakeFlareRepository(),
+        intakeRepository: FakeIntakeRepository(),
+        dailyRepository: FakeDailyRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sleep open'), findsOneWidget);
+    expect(find.text('Body state open'), findsOneWidget);
+
+    await tester.tap(find.text('Log Sleep'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Log Sleep'), findsOneWidget);
+    expect(find.text('Sleep quality: 3/5'), findsOneWidget);
+
+    Navigator.of(tester.element(find.text('Log Sleep'))).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Daily Body State'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Daily Body State'), findsOneWidget);
+    expect(find.text('Average stress: 5/10'), findsOneWidget);
   });
 }
 
@@ -157,4 +192,27 @@ class FakeIntakeRepository extends IntakeRepository {
 
   @override
   Future<void> createMedicineIntake(MedicineIntakeDraft draft) async {}
+}
+
+class FakeDailyRepository extends DailyRepository {
+  FakeDailyRepository() : super(AppDatabase(databasePath: ':memory:'));
+
+  bool sleepLogged = false;
+  bool bodyStateLogged = false;
+
+  @override
+  Future<DailyStatus> statusForToday() async => DailyStatus(
+        sleepLogged: sleepLogged,
+        bodyStateLogged: bodyStateLogged,
+      );
+
+  @override
+  Future<void> saveSleepEntry(SleepEntryDraft draft) async {
+    sleepLogged = true;
+  }
+
+  @override
+  Future<void> saveBodyState(BodyStateDraft draft) async {
+    bodyStateLogged = true;
+  }
 }
